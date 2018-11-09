@@ -15,6 +15,8 @@ public class GCObject<T> {
     public GCObject(T t, Object parent) {
         this.t = t;
         this.parent = parent;
+
+        GCHeapImpl.getHeap().submit(this);
     }
 
     /**

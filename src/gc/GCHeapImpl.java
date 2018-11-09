@@ -15,6 +15,14 @@ public class GCHeapImpl {
         this.heap = new GCHeap(size);
     }
 
+    /**
+     * Adds a GCObject to the heap
+     * @param object
+     */
+    public void submit(final GCObject object) {
+        this.heap.append(object);
+    }
+
     /* Singleton Start */
 
     private static GCHeapImpl heapImpl;
@@ -26,7 +34,7 @@ public class GCHeapImpl {
         return heapImpl;
     }
 
-    public static void initHeap(final int size, final boolean fixedSize) {
+    public static void initHeap(final int size) {
         heapImpl = new GCHeapImpl(size);
     }
 
