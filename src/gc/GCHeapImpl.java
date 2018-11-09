@@ -20,7 +20,19 @@ public class GCHeapImpl {
      * @param object
      */
     public void submit(final GCObject object) {
-        this.heap.append(object);
+        try {
+            this.heap.append(object);
+        } catch (GCHeapOverflowException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Gets the current position in the heap
+     * @return
+     */
+    public int getCarat() {
+        return this.heap.getCarat();
     }
 
     /* Singleton Start */

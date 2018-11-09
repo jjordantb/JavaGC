@@ -59,4 +59,13 @@ public class GCObject<T> {
         return this.parent == null;
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (o instanceof GCObject) {
+            return this.get().equals(((GCObject) o).get());
+        }
+        return false;
+    }
+
 }

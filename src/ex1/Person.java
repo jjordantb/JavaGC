@@ -1,12 +1,16 @@
 package ex1;
 
+import gc.GCField;
 import gc.GCObject;
 
 import java.util.Objects;
 
 public class Person {
 
+    @GCField
     private GCObject<String> name;
+
+    @GCField
     private GCObject<Job> job;
 
     public Person(String name, Job job) {

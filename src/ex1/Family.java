@@ -1,5 +1,6 @@
 package ex1;
 
+import gc.GCList;
 import gc.GCObject;
 
 import java.util.ArrayList;
@@ -7,6 +8,7 @@ import java.util.function.Predicate;
 
 public class Family {
 
+    @GCList
     private final ArrayList<GCObject<Person>> people;
 
     public Family() {
