@@ -1,22 +1,24 @@
 package gc;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Heap implementation
  *
  * @author Jordan Florchinger
  */
-public class GCHeap {
+public class GCMemory {
 
     private int carat = 0;
     private GCObject[] heap;
     private int maxSize;
 
-    public GCHeap(final int maxSize) {
+    private final ConcurrentHashMap<Long, List<GCObject>> gcRoots = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, Stack<GCObject>> threadStacks = new ConcurrentHashMap<>();
+
+    public GCMemory(final int maxSize) {
         this.maxSize = maxSize;
         this.heap = new GCObject[this.maxSize];
     }
@@ -31,18 +33,23 @@ public class GCHeap {
     public void append(final GCObject object) throws GCHeapOverflowException {
         if (this.carat < this.heap.length) {
             this.heap[carat++] = object;
+            // Job is getting created but since the heap is full it's not getting pointed too
         } else {
-            System.out.println("Garbage Collection Reached! " + this.carat + "/" + this.maxSize);
             // Run Garbage Collection
-            // Mark all of the reference objects
-            for (GCObject test : this.heap) {
-                if (test.isGCRoot()) {
-                    System.out.println("IS ROOT " + test.get());
-                    this.markRecursive(test);
+            System.out.println("Garbage Collection Reached! " + this.carat + "/" + this.maxSize);
+
+            // Mark all of the reference objects from the GCRoots
+            for (List<GCObject> roots : this.gcRoots.values()) {
+                for (GCObject o : roots) {
+                    this.markRecursive(o);
                 }
             }
+
+            for (GCObject test : this.heap) {
+                System.out.println(test.get() + " -> " + test.isMarked());
+            }
             // boolean flag if nothing could be collected
-            boolean noneMarked = true;
+            boolean noneUnMarked = true;
             // Remove all unreferenced objects (set them to null), we can also un-mark all currently market objects
             // We can also compact while sweeping
             final GCObject[] newHeap = new GCObject[this.maxSize];
@@ -51,19 +58,18 @@ public class GCHeap {
                 final GCObject o;
                 if ((o = this.get(i)) != null) {
                     if (o.isMarked()) {
-                        noneMarked = false;
                         // Set to un-marked
                         o.setMarked(false);
                         // Store it in new heap
                         newHeap[this.carat++] = o;
                     } else {
                         // It's un-marked so remove it
-                        System.out.println("Unmarked " + o.get());
+                        noneUnMarked = false;
                         this.set(i, null);
                     }
                 }
             }
-            if (noneMarked) {
+            if (noneUnMarked) {
                 throw new GCHeapOverflowException("Heap is Full, no Garbage to Collect");
             } else {
                 // Garbage has been collected, the compacted heap is newHeap
@@ -73,6 +79,37 @@ public class GCHeap {
         }
     }
 
+
+    /**
+     * Move all of the objects from the calling stack to the heap
+     */
+    public void moveToHeap() throws GCHeapOverflowException {
+        final long id = Thread.currentThread().getId();
+        final Stack<GCObject> o = this.threadStacks.get(id);
+        if (o != null) {
+            while (!o.empty()) {
+                this.append(o.pop());
+            }
+        }
+    }
+
+
+    /**
+     * Pushes a GCObject to the calling threads Stack
+     * @param object
+     */
+    public void pushToStack(final GCObject object) {
+        final long id = Thread.currentThread().getId();
+        if (!this.threadStacks.containsKey(id)) {
+            this.threadStacks.put(id, new Stack<>());
+        }
+        final List<GCObject> ts = this.threadStacks.get(id);
+        if (!ts.contains(object)) {
+            ts.add(object);
+        }
+    }
+
+
     /**
      * Gets the current position in the heap
      * @return
@@ -80,6 +117,7 @@ public class GCHeap {
     public int getCarat() {
         return carat;
     }
+
 
     /**
      * Set an index of the heap to the provided gc.GCObject
@@ -101,6 +139,22 @@ public class GCHeap {
             return this.heap[index];
         }
         return null;
+    }
+
+
+    /**
+     * Adds a GCRoot based on the calling thread
+     * @param object
+     */
+    public void addRoot(final GCObject object) {
+        final long id = Thread.currentThread().getId();
+        if (!this.gcRoots.containsKey(id)) {
+            this.gcRoots.put(id, new ArrayList<>());
+        }
+        final List<GCObject> threadRoots = this.gcRoots.get(id);
+        if (!threadRoots.contains(object)) {
+            threadRoots.add(object);
+        }
     }
 
 
@@ -128,28 +182,26 @@ public class GCHeap {
      */
     private List<GCObject> getChildren(final GCObject parent) {
         final List<GCObject> children = new ArrayList<>();
-        final Field[] fields = parent.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            System.out.println(Arrays.toString(field.getAnnotations()) + ", " + field.getName());
-            if (field.getAnnotation(GCField.class) != null) { // Check if it's a GCObject
-                try {
-                    // Add it to the children
-                    children.add((GCObject) field.get(parent));
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            } else if (field.getAnnotation(GCList.class) != null) { // Check if it's an array of GCObjects
-                try {
-                    // Since it's a list add each element to the children
-                    final List<GCObject> objects = (List<GCObject>) field.get(parent);
-                    children.addAll(objects);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+        try {
+            final Field t = parent.getClass().getDeclaredField("t");
+            t.setAccessible(true);
+            final Object tInstance = t.get(parent);
+
+            final Field[] cfs = tInstance.getClass().getDeclaredFields();
+            for (Field f : cfs) {
+                if (f.getAnnotation(GCField.class) != null) {
+                    f.setAccessible(true);
+                    children.add((GCObject) f.get(tInstance));
+                } else if (f.getAnnotation(GCList.class) != null) {
+                    f.setAccessible(true);
+                    final List<GCObject> objs = (List<GCObject>) f.get(tInstance);
+                    children.addAll(objs);
                 }
             }
+
+        } catch (IllegalAccessException | NoSuchFieldException e) {
+            e.printStackTrace();
         }
-        System.out.println("Children Found for " + parent.get() + " -> " + children.size());
         return children;
     }
 

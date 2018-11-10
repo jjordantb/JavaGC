@@ -9,21 +9,22 @@ package gc;
  */
 public class GCHeapImpl {
 
-    private final GCHeap heap;
+    private final GCMemory heap;
 
     private GCHeapImpl(final int size) {
-        this.heap = new GCHeap(size);
+        this.heap = new GCMemory(size);
     }
 
     /**
-     * Adds a GCObject to the heap
+     * Adds a GCObject to the heap, if the GCObject is a root it is added to the calling threads GCRoots container
      * @param object
      */
-    public void submit(final GCObject object) {
-        try {
-            this.heap.append(object);
-        } catch (GCHeapOverflowException e) {
-            e.printStackTrace();
+    public void submit(final GCObject object) throws GCHeapOverflowException {
+        if (object.isGCRoot()) {
+            this.heap.addRoot(object);
+            this.heap.moveToHeap();
+        } else {
+            this.heap.pushToStack(object);
         }
     }
 
