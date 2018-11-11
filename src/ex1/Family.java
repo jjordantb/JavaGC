@@ -19,15 +19,15 @@ public class Family {
      * Adds a person to the family if it doesn't already contain it
      * @param person
      */
-    public void addPerson(final Person person) {
+    public void addPerson(final GCObject<Person> person) {
         boolean contains = false;
         for (GCObject<Person> personGCObject : this.people) {
-            if (personGCObject.get().equals(person)) {
+            if (personGCObject.get().equals(person.get())) {
                 contains = true;
             }
         }
         if (!contains) {
-            people.add(new GCObject<>(person, this, true));
+            people.add(person);
         }
     }
 

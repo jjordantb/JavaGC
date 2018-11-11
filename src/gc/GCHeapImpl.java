@@ -51,6 +51,14 @@ public class GCHeapImpl {
         return (stack = this.heap.getStack()) != null ? stack.size() : -1;
     }
 
+    /**
+     * Call before the end of the thread which clears roots and therefor enabling garbage collection on their
+     * broke references
+     */
+    public void endOfThread() {
+        this.heap.cleanUp();
+    }
+
     /* Singleton Start */
 
     private static GCHeapImpl heapImpl;

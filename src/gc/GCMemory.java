@@ -146,7 +146,7 @@ public class GCMemory {
      * @param object
      */
     public void addRoot(final GCObject object) {
-        final long id = Thread.currentThread().getId();
+        final long id = this.getID();
         if (!this.gcRoots.containsKey(id)) {
             this.gcRoots.put(id, new ArrayList<>());
         }
@@ -171,9 +171,26 @@ public class GCMemory {
         }
     }
 
+    /**
+     * Gets the id for the calling thread
+     * @return
+     */
+    private long getID() {
+        return Thread.currentThread().getId();
+    }
 
     /**
-     * TODO: It's reflecting GCObject's fields, we need to reflect the fields from GCObject#get
+     * Removes GCRoots and Thread Stack for the calling thread therefore breaking all references to heap objects
+     * that will be cleaned when garbage collection is needed next
+     */
+    public void cleanUp() {
+        long id = this.getID();
+        this.gcRoots.remove(id);
+        this.threadStacks.remove(id);
+    }
+
+
+    /**
      *
      * Retrieves all of the children of the given object with reflection
      * @param parent
@@ -204,8 +221,12 @@ public class GCMemory {
         return children;
     }
 
+    /**
+     * Gets the Stack of the Calling thread
+     * @return
+     */
     public Stack<GCObject> getStack() {
-        final long id = Thread.currentThread().getId();
+        final long id = this.getID();
         final Stack<GCObject> o = this.threadStacks.get(id);
         if (o != null) {
             return o;

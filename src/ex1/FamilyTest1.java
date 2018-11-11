@@ -2,12 +2,16 @@ package ex1;
 
 import gc.GCHeapImpl;
 import gc.GCObject;
+import gc.GCThread;
 
-public class FamilyTest {
+/**
+ *
+ *
+ * @author Jordan Florchinger
+ */
+public class FamilyTest1 {
 
-    public static void main(String[] args) {
-        // Init our HeapImpl
-        GCHeapImpl.initHeap(20); // Keep it small for tests
+    private static final Runnable runnable = () -> {
 
         final GCObject<Family> family = new GCObject<>(new Family());
         System.out.println("Created Family, HeapCount: " + GCHeapImpl.getHeap().getCarat());
@@ -27,20 +31,33 @@ public class FamilyTest {
         final GCObject<Person> cousin = new GCObject<>(new Person("Cousin", new Job("Professional Child")));
         System.out.println("Created Cousin, HeapCount: " + GCHeapImpl.getHeap().getCarat());
 
-        // It's getting pushed to the stack but since there is no following GCRoot it's not entering the heap
         for (int i = 0; i < 5; i++) {
             cousin.get().setName("Leroy" + i);
             System.out.println("Iteration " + i + " Heap " + GCHeapImpl.getHeap().getCarat());
         }
 
-        family.get().addPerson(dad.get());
+        family.get().addPerson(dad);
         System.out.println("Added Dad to family " + GCHeapImpl.getHeap().getCarat());
-        family.get().addPerson(mom.get());
+        family.get().addPerson(mom);
         System.out.println("Added mom to family " + GCHeapImpl.getHeap().getCarat());
-        family.get().addPerson(daughter.get());
+        family.get().addPerson(daughter);
         System.out.println("Added daughter to family " + GCHeapImpl.getHeap().getCarat());
-        family.get().addPerson(son.get());
+        family.get().addPerson(son);
         System.out.println("Added son to family " + GCHeapImpl.getHeap().getCarat());
+    };
+
+    public static void main(String[] args) {
+        // Init our HeapImpl
+        GCHeapImpl.initHeap(30); // Keep it small for tests
+        for (int i = 0; i < 5; i++) { // Run 5 threads
+            new GCThread(runnable);
+            System.out.println("--------------------- THREAD END ----------------- ");
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
 }
