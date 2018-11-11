@@ -12,15 +12,23 @@ public class GCObject<T> {
     private final T t;
     private final Object parent;
 
-    public GCObject(T t, Object parent) {
+    public GCObject(T t, Object parent, boolean forceHeap) {
         this.t = t;
         this.parent = parent;
         try {
-            GCHeapImpl.getHeap().submit(this);
+            GCHeapImpl.getHeap().submit(this, forceHeap);
         } catch (GCHeapOverflowException e) {
             e.printStackTrace();
             System.exit(1);
         }
+    }
+
+    public GCObject(T t, boolean forceHeap) {
+        this(t, null, forceHeap);
+    }
+
+    public GCObject(T t) {
+        this(t, null, false);
     }
 
     /**

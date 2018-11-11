@@ -27,7 +27,7 @@ public class Family {
             }
         }
         if (!contains) {
-            people.add(new GCObject<>(person, this));
+            people.add(new GCObject<>(person, this, true));
         }
     }
 

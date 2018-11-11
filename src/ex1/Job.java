@@ -11,7 +11,7 @@ public class Job {
     private final GCObject<String> name;
 
     public Job(String name) {
-        this.name = new GCObject<>(name, this);
+        this.name = new GCObject<>(name, this, true);
     }
 
     public String getName() {

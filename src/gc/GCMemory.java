@@ -37,16 +37,13 @@ public class GCMemory {
         } else {
             // Run Garbage Collection
             System.out.println("Garbage Collection Reached! " + this.carat + "/" + this.maxSize);
+            int garbageRemoved = 0;
 
             // Mark all of the reference objects from the GCRoots
             for (List<GCObject> roots : this.gcRoots.values()) {
                 for (GCObject o : roots) {
                     this.markRecursive(o);
                 }
-            }
-
-            for (GCObject test : this.heap) {
-                System.out.println(test.get() + " -> " + test.isMarked());
             }
             // boolean flag if nothing could be collected
             boolean noneUnMarked = true;
@@ -66,6 +63,7 @@ public class GCMemory {
                         // It's un-marked so remove it
                         noneUnMarked = false;
                         this.set(i, null);
+                        garbageRemoved++;
                     }
                 }
             }
@@ -75,6 +73,7 @@ public class GCMemory {
                 // Garbage has been collected, the compacted heap is newHeap
                 // Update heap to newHeap
                 this.heap = newHeap;
+                System.out.println("Removed " + garbageRemoved + " broken references");
             }
         }
     }
@@ -203,6 +202,15 @@ public class GCMemory {
             e.printStackTrace();
         }
         return children;
+    }
+
+    public Stack<GCObject> getStack() {
+        final long id = Thread.currentThread().getId();
+        final Stack<GCObject> o = this.threadStacks.get(id);
+        if (o != null) {
+            return o;
+        }
+        return null;
     }
 
 }

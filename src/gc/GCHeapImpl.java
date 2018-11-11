@@ -1,5 +1,7 @@
 package gc;
 
+import java.util.Stack;
+
 /**
  * Heap Implementation that handles root references
  *
@@ -19,12 +21,16 @@ public class GCHeapImpl {
      * Adds a GCObject to the heap, if the GCObject is a root it is added to the calling threads GCRoots container
      * @param object
      */
-    public void submit(final GCObject object) throws GCHeapOverflowException {
-        if (object.isGCRoot()) {
-            this.heap.addRoot(object);
-            this.heap.moveToHeap();
+    public void submit(final GCObject object, boolean forceHeap) throws GCHeapOverflowException {
+        if (forceHeap) {
+            this.heap.append(object);
         } else {
-            this.heap.pushToStack(object);
+            if (object.isGCRoot()) {
+                this.heap.addRoot(object);
+                this.heap.moveToHeap();
+            } else {
+                this.heap.pushToStack(object);
+            }
         }
     }
 
@@ -34,6 +40,15 @@ public class GCHeapImpl {
      */
     public int getCarat() {
         return this.heap.getCarat();
+    }
+
+    /**
+     * Get the size of the calling thread's stack
+     * @return
+     */
+    public int getStackSize() {
+        final Stack<GCObject> stack;
+        return (stack = this.heap.getStack()) != null ? stack.size() : -1;
     }
 
     /* Singleton Start */

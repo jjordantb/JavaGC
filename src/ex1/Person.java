@@ -14,8 +14,8 @@ public class Person {
     private GCObject<Job> job;
 
     public Person(String name, Job job) {
-        this.name = new GCObject<>(name, this);
-        this.job = new GCObject<>(job, this);
+        this.name = new GCObject<>(name, this, true);
+        this.job = new GCObject<>(job, this, true);
     }
 
     public String getName() {
@@ -27,11 +27,11 @@ public class Person {
     }
 
     public void setName(String name) {
-        this.name = new GCObject<>(name, this);
+        this.name = new GCObject<>(name, this, true);
     }
 
     public void setJob(Job job) {
-        this.job = new GCObject<>(job, this);
+        this.job = new GCObject<>(job, this, true);
     }
 
     @Override
