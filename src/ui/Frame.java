@@ -1,5 +1,6 @@
 package ui;
 
+import ex1.Family;
 import gc.GCHeapImpl;
 import gc.GCObject;
 import util.Exec;
@@ -104,10 +105,20 @@ public class Frame {
 
                         // draw pointers
                         for (Object child : root.getChildren()) {
-                            HeapObject obj;
-                            if ((obj = this.find(heapObjects, (GCObject) child)) != null) {
-                                Rectangle bounds = obj.getBounds();
-                                g.drawLine(startX, startY + (height / 2), bounds.x + bounds.width, bounds.y + (bounds.height / 2));
+                            if (root.get() instanceof Family) {
+                                for (Object famMember : ((GCObject) child).getChildren()) {
+                                    HeapObject obj;
+                                    if ((obj = this.find(heapObjects, (GCObject) famMember)) != null) {
+                                        Rectangle bounds = obj.getBounds();
+                                        g.drawLine(startX, startY + (height / 2), bounds.x + bounds.width, bounds.y + (bounds.height / 2));
+                                    }
+                                }
+                            } else {
+                                HeapObject obj;
+                                if ((obj = this.find(heapObjects, (GCObject) child)) != null) {
+                                    Rectangle bounds = obj.getBounds();
+                                    g.drawLine(startX, startY + (height / 2), bounds.x + bounds.width, bounds.y + (bounds.height / 2));
+                                }
                             }
                         }
                     }

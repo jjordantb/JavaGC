@@ -3,6 +3,7 @@ package gc;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Wrapper class that provides the functionality to mark objects on a higher level
@@ -101,4 +102,19 @@ public class GCObject<T> {
         return children;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof GCObject)) return false;
+        GCObject<?> gcObject = (GCObject<?>) o;
+        return isMarked() == gcObject.isMarked() &&
+                Objects.equals(t, gcObject.t) &&
+                Objects.equals(getParent(), gcObject.getParent());
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(isMarked(), t, getParent());
+    }
 }

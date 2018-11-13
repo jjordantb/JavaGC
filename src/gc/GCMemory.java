@@ -181,7 +181,6 @@ public class GCMemory {
         }
         object.setMarked(true);
         List<GCObject> children = object.getChildren();
-        System.out.println("Found " + children.size() + " children for " + object.get());
         for (GCObject child : children) {
             this.markRecursive(child, count++);
         }
