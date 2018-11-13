@@ -75,8 +75,8 @@ public class UITest {
     };
 
     public static void main(String[] args) {
-        GCHeapImpl.initHeap(30); // Keep it small for tests
-        for (int i = 0; i < 15; i++) { // Run 5 threads
+        GCHeapImpl.initHeap(60); // Keep it small for tests
+        for (int i = 0; i < 10; i++) { // Run 5 threads
             frame.repaint();
             Exec.delay(Exec.SLEEP * 4);
             new GCThread(runnable);

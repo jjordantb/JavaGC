@@ -1,6 +1,7 @@
 package ui;
 
 import gc.GCObject;
+import util.Exec;
 
 import java.awt.*;
 
@@ -21,4 +22,9 @@ public class HeapObject {
     public GCObject getObject() {
         return object;
     }
+
+    public Point getPointer(boolean left) {
+        return new Point(this.bounds.x + (left ? this.bounds.width : 0), this.bounds.y + (this.bounds.height / 2));
+    }
+
 }

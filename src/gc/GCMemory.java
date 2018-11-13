@@ -49,7 +49,8 @@ public class GCMemory {
                 // Mark all of the reference objects from the GCRoots
                 for (List<GCObject> roots : this.gcRoots.values()) {
                     for (GCObject o : roots) {
-                        this.markRecursive(o);
+                        o.setMarked(false);
+                        this.markRecursive(o, 0);
                     }
                 }
                 // boolean flag if nothing could be collected
@@ -174,16 +175,17 @@ public class GCMemory {
      * Recursively goes through and marks objects
      * @param object
      */
-    private void markRecursive(final GCObject object) {
+    private int markRecursive(final GCObject object, int count) {
         if (object.isMarked()) {
-            return;
+            return count;
         }
         object.setMarked(true);
         List<GCObject> children = object.getChildren();
         System.out.println("Found " + children.size() + " children for " + object.get());
         for (GCObject child : children) {
-            this.markRecursive(child);
+            this.markRecursive(child, count++);
         }
+        return count;
     }
 
     /**

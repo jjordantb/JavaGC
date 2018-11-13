@@ -2,12 +2,14 @@ package ui;
 
 import gc.GCHeapImpl;
 import gc.GCObject;
+import util.Exec;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class Frame {
 
@@ -46,7 +48,7 @@ public class Frame {
             for (GCObject o : GCHeapImpl.getMemory().getHeap()) {
                 if (startY + height > super.getHeight() - 10) {
                     startY = 35;
-                    startX = 10 + (cols * 20) + (cols * width);
+                    startX = 10 + (cols * 40) + (cols * width);
                     cols++;
                 }
                 g.setColor(new Color(34, 226, 237));
@@ -63,7 +65,26 @@ public class Frame {
                 startY += height + 4;
             }
 
-            // Drawing the roots
+            // Draw heap references
+            for (HeapObject heapObject : heapObjects) {
+                if (heapObject.getObject() != null) {
+                    g.setColor(Color.MAGENTA);
+                    int offset = 10;
+                    List<GCObject> children = heapObject.getObject().getChildren();
+                    for (GCObject child : children) {
+                        HeapObject hoChild = this.find(heapObjects, child);
+                        if (hoChild != null) {
+                            Point p = hoChild.getPointer(true);
+                            g.drawLine(p.x, p.y, p.x + offset, p.y);
+                            Point p2 = heapObject.getPointer(true);
+                            g.drawLine(p2.x, p2.y, p2.x + offset, p2.y);
+                            g.drawLine(p.x + offset, p.y, p2.x + offset, p2.y);
+                        }
+                    }
+                }
+            }
+
+            // Drawing the roots and their references
             startX = super.getWidth() - width - 50; startY = 35; width = 100; height = 20; cols = 1;
             for (Map.Entry<Long, List<GCObject>> roots : GCHeapImpl.getMemory().getRoots().entrySet()) {
                 g.setFont(new Font("default", Font.BOLD, 16));

@@ -1,5 +1,7 @@
 package util;
 
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Exec {
 
     public static int SLEEP = 500;
@@ -10,6 +12,10 @@ public class Exec {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    public static int nextInt(int min, int max) {
+        return ThreadLocalRandom.current().nextInt(min, max + 1);
     }
 
 }
