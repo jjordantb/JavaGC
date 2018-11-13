@@ -1,5 +1,9 @@
 package gc;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Wrapper class that provides the functionality to mark objects on a higher level
  *
@@ -16,7 +20,7 @@ public class GCObject<T> {
         this.t = t;
         this.parent = parent;
         try {
-            GCHeapImpl.getHeap().submit(this, forceHeap);
+            GCHeapImpl.getMemory().submit(this, forceHeap);
         } catch (GCHeapOverflowException e) {
             e.printStackTrace();
             System.exit(1);
@@ -71,13 +75,30 @@ public class GCObject<T> {
         return this.parent == null;
     }
 
+    /**
+     *
+     * Retrieves all of the children of the given object with reflection
+     * @return
+     */
+    public List<GCObject> getChildren() {
+        final List<GCObject> children = new ArrayList<>();
+        try {
+            final Field[] cfs = this.t.getClass().getDeclaredFields();
+            for (Field f : cfs) {
+                if (f.getAnnotation(GCField.class) != null) {
+                    f.setAccessible(true);
+                    children.add((GCObject) f.get(this.t));
+                } else if (f.getAnnotation(GCList.class) != null) {
+                    f.setAccessible(true);
+                    final List<GCObject> objs = (List<GCObject>) f.get(this.t);
+                    children.addAll(objs);
+                }
+            }
 
-    @Override
-    public boolean equals(Object o) {
-        if (o instanceof GCObject) {
-            return this.get().equals(((GCObject) o).get());
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
         }
-        return false;
+        return children;
     }
 
 }

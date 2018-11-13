@@ -14,8 +14,8 @@ public class Person {
     private GCObject<Job> job;
 
     public Person(String name, Job job) {
-        this.name = new GCObject<>(name, this, true);
-        this.job = new GCObject<>(job, this, true);
+        this.name = new GCObject<>(name, this, false);
+        this.job = new GCObject<>(job, this, false);
     }
 
     public String getName() {
@@ -34,17 +34,4 @@ public class Person {
         this.job = new GCObject<>(job, this, true);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Person)) return false;
-        Person person = (Person) o;
-        return Objects.equals(getName(), person.getName()) &&
-                Objects.equals(getJob(), person.getJob());
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(getName(), getJob());
-    }
 }

@@ -1,5 +1,8 @@
 package gc;
 
+import ui.UITest;
+import util.Exec;
+
 import java.lang.reflect.Field;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,9 +14,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class GCMemory {
 
+    private final Object lock = new Object();
+
     private int carat = 0;
     private GCObject[] heap;
     private int maxSize;
+    private boolean blocking = false;
 
     private final ConcurrentHashMap<Long, List<GCObject>> gcRoots = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<Long, Stack<GCObject>> threadStacks = new ConcurrentHashMap<>();
@@ -27,53 +33,60 @@ public class GCMemory {
     /**
      * Appends a gc.GCObject to the heap at it's current location
      *
-     * If heap size isn't fixed when overflowing it will allocate double the current size
      * @param object
      */
     public void append(final GCObject object) throws GCHeapOverflowException {
-        if (this.carat < this.heap.length) {
-            this.heap[carat++] = object;
-            // Job is getting created but since the heap is full it's not getting pointed too
-        } else {
-            // Run Garbage Collection
-            System.out.println("Garbage Collection Reached! " + this.carat + "/" + this.maxSize);
-            int garbageRemoved = 0;
+        synchronized (this.lock) {
+            if (this.carat < this.heap.length) {
+                this.heap[carat++] = object;
+                // Job is getting created but since the heap is full it's not getting pointed too
+            } else {
+                this.blocking = true;
+                // Run Garbage Collection
+                System.out.println("Garbage Collection Reached! " + this.carat + "/" + this.maxSize);
+                int garbageRemoved = 0;
 
-            // Mark all of the reference objects from the GCRoots
-            for (List<GCObject> roots : this.gcRoots.values()) {
-                for (GCObject o : roots) {
-                    this.markRecursive(o);
-                }
-            }
-            // boolean flag if nothing could be collected
-            boolean noneUnMarked = true;
-            // Remove all unreferenced objects (set them to null), we can also un-mark all currently market objects
-            // We can also compact while sweeping
-            final GCObject[] newHeap = new GCObject[this.maxSize];
-            this.carat = 0;
-            for (int i = 0; i < this.heap.length; i++) {
-                final GCObject o;
-                if ((o = this.get(i)) != null) {
-                    if (o.isMarked()) {
-                        // Set to un-marked
-                        o.setMarked(false);
-                        // Store it in new heap
-                        newHeap[this.carat++] = o;
-                    } else {
-                        // It's un-marked so remove it
-                        noneUnMarked = false;
-                        this.set(i, null);
-                        garbageRemoved++;
+                // Mark all of the reference objects from the GCRoots
+                for (List<GCObject> roots : this.gcRoots.values()) {
+                    for (GCObject o : roots) {
+                        this.markRecursive(o);
                     }
                 }
-            }
-            if (noneUnMarked) {
-                throw new GCHeapOverflowException("Heap is Full, no Garbage to Collect");
-            } else {
-                // Garbage has been collected, the compacted heap is newHeap
-                // Update heap to newHeap
-                this.heap = newHeap;
-                System.out.println("Removed " + garbageRemoved + " broken references");
+                // boolean flag if nothing could be collected
+                boolean noneUnMarked = true;
+                // Remove all unreferenced objects (set them to null), we can also un-mark all currently market objects
+                // We can also compact while sweeping
+                final GCObject[] newHeap = new GCObject[this.maxSize];
+                this.carat = 0;
+                for (int i = 0; i < this.heap.length; i++) {
+                    final GCObject o;
+                    if ((o = this.get(i)) != null) {
+                        if (o.isMarked()) {
+                            // Set to un-marked
+                            o.setMarked(false);
+                            // Store it in new heap
+                            newHeap[this.carat++] = o;
+                        } else {
+                            // It's un-marked so remove it
+                            noneUnMarked = false;
+                            this.set(i, null);
+                            garbageRemoved++;
+                        }
+                    }
+                }
+                if (noneUnMarked) {
+                    throw new GCHeapOverflowException("Heap is Full, no Garbage to Collect");
+                } else {
+                    // Garbage has been collected, the compacted heap is newHeap
+                    // Update heap to newHeap
+                    UITest.frame.repaint();
+                    Exec.delay(Exec.SLEEP * 2);
+                    this.heap = newHeap;
+                    UITest.frame.repaint();
+                    Exec.delay(Exec.SLEEP * 2);
+                    System.out.println("Removed " + garbageRemoved + " broken references");
+                    this.blocking = false;
+                }
             }
         }
     }
@@ -166,7 +179,9 @@ public class GCMemory {
             return;
         }
         object.setMarked(true);
-        for (GCObject child : this.getChildren(object)) {
+        List<GCObject> children = object.getChildren();
+        System.out.println("Found " + children.size() + " children for " + object.get());
+        for (GCObject child : children) {
             this.markRecursive(child);
         }
     }
@@ -184,41 +199,11 @@ public class GCMemory {
      * that will be cleaned when garbage collection is needed next
      */
     public void cleanUp() {
-        long id = this.getID();
-        this.gcRoots.remove(id);
-        this.threadStacks.remove(id);
-    }
-
-
-    /**
-     *
-     * Retrieves all of the children of the given object with reflection
-     * @param parent
-     * @return
-     */
-    private List<GCObject> getChildren(final GCObject parent) {
-        final List<GCObject> children = new ArrayList<>();
-        try {
-            final Field t = parent.getClass().getDeclaredField("t");
-            t.setAccessible(true);
-            final Object tInstance = t.get(parent);
-
-            final Field[] cfs = tInstance.getClass().getDeclaredFields();
-            for (Field f : cfs) {
-                if (f.getAnnotation(GCField.class) != null) {
-                    f.setAccessible(true);
-                    children.add((GCObject) f.get(tInstance));
-                } else if (f.getAnnotation(GCList.class) != null) {
-                    f.setAccessible(true);
-                    final List<GCObject> objs = (List<GCObject>) f.get(tInstance);
-                    children.addAll(objs);
-                }
-            }
-
-        } catch (IllegalAccessException | NoSuchFieldException e) {
-            e.printStackTrace();
+        synchronized (this.lock) {
+            long id = this.getID();
+            this.gcRoots.remove(id);
+            this.threadStacks.remove(id);
         }
-        return children;
     }
 
     /**
@@ -232,6 +217,30 @@ public class GCMemory {
             return o;
         }
         return null;
+    }
+
+    /**
+     * Gets the heap objects
+     * @return
+     */
+    public GCObject[] getHeap() {
+        return heap;
+    }
+
+    public ConcurrentHashMap<Long, List<GCObject>> getGcRoots() {
+        return gcRoots;
+    }
+
+    public ConcurrentHashMap<Long, Stack<GCObject>> getThreadStacks() {
+        return threadStacks;
+    }
+
+    /**
+     * Check if the heap is blocking access
+     * @return
+     */
+    public boolean isBlocking() {
+        return blocking;
     }
 
 }

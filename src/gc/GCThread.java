@@ -16,7 +16,7 @@ public class GCThread implements Runnable {
     public void run() {
         System.out.println("Starting Thread " + Thread.currentThread().getId());
         this.runnable.run(); // Run the "Thread"
-        GCHeapImpl.getHeap().endOfThread(); // Clean up the thread
+        GCHeapImpl.getMemory().endOfThread(); // Clean up the thread
     }
 
 }

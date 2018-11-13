@@ -1,5 +1,9 @@
 package gc;
 
+import util.Exec;
+
+import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 /**
@@ -22,6 +26,9 @@ public class GCHeapImpl {
      * @param object
      */
     public void submit(final GCObject object, boolean forceHeap) throws GCHeapOverflowException {
+        while (this.heap.isBlocking()) {
+            Exec.delay(100);
+        }
         if (forceHeap) {
             this.heap.append(object);
         } else {
@@ -59,11 +66,27 @@ public class GCHeapImpl {
         this.heap.cleanUp();
     }
 
+    /**
+     * Gets the heap
+     * @return
+     */
+    public GCObject[] getHeap() {
+        return this.heap.getHeap();
+    }
+
+    public Map<Long, List<GCObject>> getRoots() {
+        return this.heap.getGcRoots();
+    }
+
+    public Map<Long, Stack<GCObject>> getStacks() {
+        return this.heap.getThreadStacks();
+    }
+
     /* Singleton Start */
 
     private static GCHeapImpl heapImpl;
 
-    public static GCHeapImpl getHeap() {
+    public static GCHeapImpl getMemory() {
         if (heapImpl == null) {
             heapImpl = new GCHeapImpl(10);
         }
