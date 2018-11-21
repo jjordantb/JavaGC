@@ -11,6 +11,11 @@ import util.Exec;
 
 public class UITest {
 
+    static {
+        GCHeapImpl.initHeap(60); // Keep it small for tests
+        final GCObject<Person> stat = new GCObject<>(new Person("staticPersonm", new Job("staticJob")));
+    }
+
     public static Frame frame = new Frame();
 
     private static final Runnable runnable = () -> {
@@ -75,7 +80,6 @@ public class UITest {
     };
 
     public static void main(String[] args) {
-        GCHeapImpl.initHeap(60); // Keep it small for tests
         for (int i = 0; i < 10; i++) { // Run 5 threads
             frame.repaint();
             Exec.delay(Exec.SLEEP * 4);
